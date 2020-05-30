@@ -1,0 +1,7 @@
+name = "DecomposedMDPSolver"
+uuid = "df7d981f-525c-4175-a478-46a245dff938"
+authors = ["Anthony Corso <anthonycorso92@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
