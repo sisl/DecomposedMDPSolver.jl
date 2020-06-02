@@ -1,6 +1,3 @@
-using POMDPs, POMDPSimulators, POMDPPolicies
-using POMDPModels
-
 # Function to create matrix from array of arrays. This version is faster than vcat
 function fast_mat(S)
     X = Array{Float64, 2}(undef, length(S[1]), length(S))

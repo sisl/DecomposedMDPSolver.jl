@@ -8,7 +8,7 @@ ConstantLayer(N::Integer) = ConstantLayer(zeros(N))
 
 Flux.@functor ConstantLayer
 
-struct A2TNetwork
+mutable struct A2TNetwork
   base::Chain
   attn::Chain
   solutions::Array{Function} # function takes in state and outputs vector of action values
@@ -18,7 +18,7 @@ function (m::A2TNetwork)(input)
     b = m.base(input) #output is (Na, b)
     w = m.attn(input) #output is (Nt+1, b)
     B, Nt = size(input, 2), size(w,1) - 1
-    qs = [hcat([s(input[:,i]) for s in m.solutions]...) for i=1:B] #output is (Na, Nt)
+    qs = Zygote.ignore(() -> [hcat([s(input[:,i]) for s in m.solutions]...) for i=1:B]) #output is (Na, Nt)
     Flux.stack(qs .* Flux.unstack(w[1:Nt, :], 2), 2) .+ w[Nt+1:Nt+1, :] .* b
 end
 

@@ -3,6 +3,7 @@ module DecomposedMDPSolver
     using POMDPs
     using Random
     using Distributions
+    using Zygote
 
     export ConstantLayer, A2TNetwork
     include("a2t.jl")
