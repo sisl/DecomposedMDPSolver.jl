@@ -5,6 +5,7 @@ using Flux
 Na = 5
 Np = 10
 solutions = [(x) -> rand(Na) for i=1:Np ]
+
 ## Weights network
 base = Chain(Dense(4, 32, relu), Dense(32, Na))
 attn = Chain(Dense(4, 32, relu), Dense(32, Np+1), softmax)
