@@ -10,7 +10,7 @@ end
 # This function samples episodes from the policy using importance sampling to weight them
 function sample_episodes(mdp, policy::Policy, Neps::Int64; max_steps::Int64 = 1000,
                          a_and_p = action_and_probability)
-    S, G, ep_return = [], Float32[], []
+    S, G, avg_ep_return = [], Float32[], 0.
     for i=1:Neps
         s, steps = initialstate(mdp), 0
         Si, Ri, ρi = [], [], []
@@ -27,11 +27,11 @@ function sample_episodes(mdp, policy::Policy, Neps::Int64; max_steps::Int64 = 10
         weighted_returns = reverse(cumsum(reverse(Ri))) .* reverse(cumprod(reverse(ρi)))
         push!(S, Si...)
         push!(G, weighted_returns...)
-        push!(ep_return, sum(Ri))
+        avg_ep_return += sum(Ri)
     end
-    S, G = fast_mat(S), G'
+    S, G, avg_ep_return = fast_mat(S), G', avg_ep_return/Neps
     @assert size(S,2) == size(G,2)
     @assert size(G,1) == 1
-    S, G, ep_return
+    S, G, avg_ep_return
 end
 

@@ -6,6 +6,7 @@ module DecomposedMDPSolver
     using Zygote
     using TensorBoardLogger
     using Logging
+    using BSON: @save
 
     export ConstantLayer, A2TNetwork
     include("a2t.jl")

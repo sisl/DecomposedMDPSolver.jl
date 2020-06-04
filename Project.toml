@@ -4,6 +4,7 @@ authors = ["Anthony Corso <anthonycorso92@gmail.com>"]
 version = "0.1.0"
 
 [deps]
+BSON = "fbb218c0-5317-5bc6-957e-2ee96dd4b1f0"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
 Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"

@@ -24,5 +24,5 @@ S, G, R = sample_episodes(mdp, p, 10)
 @test all(G .>= 0)
 @test size(S, 1) == 2
 @test length(G) == size(S, 2)
-@test length(R) == 10
+@test R > 0
 

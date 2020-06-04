@@ -3,6 +3,7 @@ using POMDPs, POMDPModels, POMDPSimulators, POMDPModelTools
 using LocalFunctionApproximation, GridInterpolations, LocalApproximationPolicyEvaluation
 using Flux
 using Random
+using BSON
 
 # Step 1 - Setup the gridworld problem
 action_probability(mdp::SimpleGridWorld, s, a) = 0.25
@@ -24,7 +25,11 @@ render(g, (s=GWPos(1,1), r=1), color = (s) -> 20. *(value(dp_policy, s) - 0.5))
 V_network = Chain((x) -> x .- 5.f0 ./ 5.f0, Dense(2,32, relu), Dense(32, 1, sigmoid))
 render(g, (s=GWPos(1,1), r=1), color = (s) -> 20. *(V_network(convert_s(Array{Float64, 1}, s, g))[1] - 0.5))
 
-mc_policy_eval!(g, V_network, action_probability, Neps=100, iterations=100)
+mc_policy_eval!(g, V_network, action_probability, Neps=50, iterations=10)
 
 render(g, (s=GWPos(1,1), r=1), color = (s) -> 20. *(V_network(convert_s(Array{Float64, 1}, s, g))[1] - 0.5))
+
+new_V = BSON.load("log/_4/last_model.bson")[:V]
+render(g, (s=GWPos(1,1), r=1), color = (s) -> 20. *(new_V(convert_s(Array{Float64, 1}, s, g))[1] - 0.5))
+
 

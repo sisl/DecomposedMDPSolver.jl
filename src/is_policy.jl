@@ -8,7 +8,7 @@ end
 
 # Get the value of being in state s
 function POMDPs.value(p::ISPolicy, s)
-    v = p.network(convert_s(Array{Float64,1}, s, p.mdp))
+    v = p.network(convert_s(Array{Float32,1}, s, p.mdp))
     @assert length(v) == 1
     v[1]
 end
