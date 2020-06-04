@@ -4,6 +4,8 @@ module DecomposedMDPSolver
     using Random
     using Distributions
     using Zygote
+    using TensorBoardLogger
+    using Logging
 
     export ConstantLayer, A2TNetwork
     include("a2t.jl")

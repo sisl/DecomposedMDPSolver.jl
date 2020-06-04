@@ -21,10 +21,10 @@ dp_policy = solve(solver, g)
 render(g, (s=GWPos(1,1), r=1), color = (s) -> 20. *(value(dp_policy, s) - 0.5))
 
 # Step 3 - Solve the problem using a MC policy eval with function approximation
-V_network = Chain((x) -> x .- 5. ./ 5., Dense(2,32, relu), Dense(32, 1, sigmoid))
+V_network = Chain((x) -> x .- 5.f0 ./ 5.f0, Dense(2,32, relu), Dense(32, 1, sigmoid))
 render(g, (s=GWPos(1,1), r=1), color = (s) -> 20. *(V_network(convert_s(Array{Float64, 1}, s, g))[1] - 0.5))
 
-mc_policy_eval!(g, V_network, action_probability, Neps=100, iterations = 10)
+mc_policy_eval!(g, V_network, action_probability, Neps=100, iterations=100)
 
 render(g, (s=GWPos(1,1), r=1), color = (s) -> 20. *(V_network(convert_s(Array{Float64, 1}, s, g))[1] - 0.5))
 

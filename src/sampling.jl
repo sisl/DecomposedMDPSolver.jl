@@ -1,6 +1,6 @@
 # Function to create matrix from array of arrays. This version is faster than vcat
 function fast_mat(S)
-    X = Array{Float64, 2}(undef, length(S[1]), length(S))
+    X = Array{Float32, 2}(undef, length(S[1]), length(S))
     for i=1:length(S)
         X[:,i] = S[i]
     end
@@ -10,7 +10,7 @@ end
 # This function samples episodes from the policy using importance sampling to weight them
 function sample_episodes(mdp, policy::Policy, Neps::Int64; max_steps::Int64 = 1000,
                          a_and_p = action_and_probability)
-    S, G = [], Float64[]
+    S, G, ep_return = [], Float32[], []
     for i=1:Neps
         s, steps = initialstate(mdp), 0
         Si, Ri, ρi = [], [], []
@@ -27,10 +27,11 @@ function sample_episodes(mdp, policy::Policy, Neps::Int64; max_steps::Int64 = 10
         weighted_returns = reverse(cumsum(reverse(Ri))) .* reverse(cumprod(reverse(ρi)))
         push!(S, Si...)
         push!(G, weighted_returns...)
+        push!(ep_return, sum(Ri))
     end
     S, G = fast_mat(S), G'
     @assert size(S,2) == size(G,2)
     @assert size(G,1) == 1
-    S,G
+    S, G, ep_return
 end
 

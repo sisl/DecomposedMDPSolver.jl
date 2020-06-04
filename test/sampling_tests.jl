@@ -20,8 +20,9 @@ a2t_model = A2TNetwork(base, attn, solutions)
 action_prob(mdp, s, a) = 0.25
 p = ISPolicy(a2t_model, mdp, action_prob, Random.GLOBAL_RNG)
 
-S, G  = sample_episodes(mdp, p, 10)
+S, G, R = sample_episodes(mdp, p, 10)
 @test all(G .>= 0)
 @test size(S, 1) == 2
 @test length(G) == size(S, 2)
+@test length(R) == 10
 
