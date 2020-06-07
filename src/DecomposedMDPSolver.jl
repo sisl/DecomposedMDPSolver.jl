@@ -1,6 +1,7 @@
 module DecomposedMDPSolver
     using Flux
     using POMDPs
+    using POMDPSimulators
     using Random
     using Distributions
     using Zygote

@@ -20,12 +20,26 @@ function POMDPs.value(p::ISPolicy, s, a)
     r + discount(mdp)*(!isterminal(mdp, sp))*value(p, sp)
 end
 
+function Distributions.logpdf(policy::ISPolicy, s, a)
+    mdp = policy.mdp
+    us = [value(policy, s, a)*policy.action_probability(mdp, s, a) for a in actions(policy.mdp, s)]
+    if sum(us) == 0
+        us = [policy.action_probability(mdp, s, a) for a in actions(policy.mdp, s)]
+    end
+    p = value(policy, s, a)*policy.action_probability(mdp, s, a) / sum(us)
+    return (p == 0) ? log(policy.action_probability(mdp, s, a)) : log(p)
+end
+
+
+Distributions.logpdf(policy::ISPolicy, h::SimHistory) = sum([logpdf(policy, s, a) for (s,a) in eachstep(h, (:s, :a))])
+
+
 # Choose an action based on the probability of failure. Return action and prob
 function action_and_probability(p::ISPolicy, s)
     mdp = p.mdp
     vs = [p.action_probability(mdp, s, a)*value(p, s, a) for a in actions(mdp, s)]
     @assert all(vs .>= 0)
-    all(vs .== 0) && (vs = ones(length(vs)))
+    all(vs .== 0) && (vs = [p.action_probability(mdp, s, a) for a in actions(mdp, s)])
     vs ./= sum(vs)
     ai = rand(p.rng, Categorical(vs))
     actions(mdp)[ai], vs[ai]
