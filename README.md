@@ -1,4 +1,6 @@
 # DecomposedMDPSolver.jl
+[![Build Status](https://travis-ci.org/sisl/DecomposedMDPSolver.jl.svg?branch=master)](https://travis-ci.org/sisl/DecomposedMDPSolver.jl) [![Coverage Status](https://coveralls.io/repos/github/sisl/DecomposedMDPSolver.jl/badge.svg?branch=master)](https://coveralls.io/github/sisl/DecomposedMDPSolver.jl?branch=master) [![codecov](https://codecov.io/gh/sisl/DecomposedMDPSolver.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/sisl/DecomposedMDPSolver.jl)
+
 Tools for solving an MDP using decomposition. The two main contributions are
 1. An implementation of the Attend, Adapt and Transfer (A2T) network for Q learning: https://arxiv.org/abs/1510.02879
 2. An implementation of Monte-Carlo Policy evaluation
