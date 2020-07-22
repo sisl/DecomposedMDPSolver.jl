@@ -15,11 +15,11 @@ mutable struct A2TNetwork
 end
 
 function (m::A2TNetwork)(input)
-    b = m.base(input) #output is (Na, b)
-    w = m.attn(input) #output is (Nt+1, b)
+    b = m.base(input) #output is (Na, B)
+    w = m.attn(input) #output is (Nt+1, B)
     B, Nt = size(input, 2), size(w,1) - 1
-    qs = Zygote.ignore(() -> [hcat([s(input[:,i]) for s in m.solutions]...) for i=1:B]) #output is (Na, Nt)
-    Flux.stack(qs .* Flux.unstack(w[1:Nt, :], 2), 2) .+ w[Nt+1:Nt+1, :] .* b
+    qs = Zygote.ignore(() -> vcat([mapslices(s, input; dims=1) for s in solutions]...)) #output is (B, Nt)
+    sum(w[1:Nt, :].*qs, dims=1) .+ w[Nt+1:Nt+1, :] .* b
 end
 
 Flux.@functor A2TNetwork
