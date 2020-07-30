@@ -18,8 +18,14 @@ function (m::A2TNetwork)(input)
     b = m.base(input) #output is (Na, B)
     w = m.attn(input) #output is (Nt+1, B)
     B, Nt = size(input, 2), size(w,1) - 1
-    qs = Zygote.ignore(() -> vcat([mapslices(s, input; dims=1) for s in solutions]...)) #output is (B, Nt)
-    sum(w[1:Nt, :].*qs, dims=1) .+ w[Nt+1:Nt+1, :] .* b
+    if size(b,1) == 1
+        # Collapse qs (form 3D) to 2D when action space is 1D.
+        qs = Zygote.ignore(() -> vcat([mapslices(s, input; dims=1) for s in m.solutions]...)) #output is (B, Nt)
+        return sum(w[1:Nt, :].*qs, dims=1) .+ w[Nt+1:Nt+1, :] .* b
+    else
+        qs = Zygote.ignore(() -> [hcat([s(input[:,i]) for s in m.solutions]...) for i=1:B]) #output is Bx(Na, Nt)
+        return Flux.stack(qs .* Flux.unstack(w[1:Nt, :], 2), 2) .+ w[Nt+1:Nt+1, :] .* b
+    end
 end
 
 Flux.@functor A2TNetwork
