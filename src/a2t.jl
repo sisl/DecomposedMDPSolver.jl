@@ -45,3 +45,36 @@ function Base.deepcopy(m::A2TNetwork)
   A2TNetwork(deepcopy(m.base), deepcopy(m.attn), deepcopy(m.solutions))
 end
 
+## A2T Network with state transform
+mutable struct A2TSTNetwork
+  base::Chain
+  attn::Chain
+  strans::Chain
+  solutions::Array{Chain} # function takes in state and outputs vector of action values
+end
+
+function (m::A2TSTNetwork)(input)
+    tinput = m.strans(input) # output is (Ni, B)
+    b = m.base(tinput) #output is (Na, B)
+    w = m.attn(tinput) #output is (Nt+1, B)
+    B, Nt = size(input, 2), size(w,1) - 1
+    qs = [hcat([s(tinput[:,i]) for s in m.solutions]...) for i=1:B] #output is Bx(Na, Nt)
+    Flux.stack(qs .* Flux.unstack(w[1:Nt, :], 2), 2) .+ w[Nt+1:Nt+1, :] .* b
+end
+
+Flux.@functor A2TSTNetwork
+
+Flux.trainable(m::A2TSTNetwork) = (m.base, m.attn, m.strans)
+
+function Base.iterate(m::A2TSTNetwork, i=1)
+    i > length(m.base.layers) + length(m.attn.layers) && return nothing
+    if i <= length(m.base.layers)
+        return (m.base[i], i+1)
+    elseif i <= length(m.base.layers) + length(m.attn.layers)
+        return (m.attn[i - length(m.base.layers)], i+1)
+    elseif i <= length(m.base.layers) + length(m.attn.layers) + length(m.strans.layers)
+        return (m.strans[i - length(m.base.layers) - length(m.attn.layers)], i+1)
+    end
+end
+
+
