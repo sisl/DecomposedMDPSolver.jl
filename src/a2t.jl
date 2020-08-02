@@ -50,7 +50,7 @@ mutable struct A2TSTNetwork
   base::Chain
   attn::Chain
   strans::Chain
-  solutions::Array{Chain} # function takes in state and outputs vector of action values
+  solutions::Array{Any} # function takes in state and outputs vector of action values
 end
 
 function (m::A2TSTNetwork)(input)
