@@ -17,15 +17,15 @@ end
 function (m::A2TNetwork)(input)
     b = m.base(input) #output is (Na, B)
     w = m.attn(input) #output is (Nt+1, B)
-    B, Nt = size(input, 2), size(w,1) - 1
-    if size(b,1) == 1
-        # Collapse qs (form 3D) to 2D when action space is 1D.
-        qs = Zygote.ignore(() -> vcat([mapslices(s, input; dims=1) for s in m.solutions]...)) #output is (B, Nt)
-        return sum(w[1:Nt, :].*qs, dims=1) .+ w[Nt+1:Nt+1, :] .* b
-    else
-        qs = Zygote.ignore(() -> [hcat([s(input[:,i]) for s in m.solutions]...) for i=1:B]) #output is Bx(Na, Nt)
-        return Flux.stack(qs .* Flux.unstack(w[1:Nt, :], 2), 2) .+ w[Nt+1:Nt+1, :] .* b
-    end
+    Na, B, Nt  = size(b,1), size(b, 2), size(w,1) - 1
+
+    qs = Array{Float32}(undef, Nt, Na, B)
+    Zygote.ignore(() -> begin
+        for i=1:B, s=1:Nt
+            qs[s, :, i] .= m.solutions[s](input[:, i])
+        end
+    end)
+    sum(qs .* Flux.unsqueeze(w[1:Nt, :], 2), dims=1)[1,:,:] .+ w[Nt+1:Nt+1, :] .* b
 end
 
 Flux.@functor A2TNetwork
@@ -42,7 +42,7 @@ function Base.iterate(m::A2TNetwork, i=1)
 end
 
 function Base.deepcopy(m::A2TNetwork)
-  A2TNetwork(deepcopy(m.base), deepcopy(m.attn), deepcopy(m.solutions))
+  A2TNetwork(deepcopy(m.base), deepcopy(m.attn), m.solutions)
 end
 
 ## A2T Network with state transform
@@ -57,9 +57,12 @@ function (m::A2TSTNetwork)(input)
     tinput = m.strans(input) # output is (Ni, B)
     b = m.base(tinput) #output is (Na, B)
     w = m.attn(tinput) #output is (Nt+1, B)
-    B, Nt = size(input, 2), size(w,1) - 1
-    qs = [hcat([s(tinput[:,i]) for s in m.solutions]...) for i=1:B] #output is Bx(Na, Nt)
-    Flux.stack(qs .* Flux.unstack(w[1:Nt, :], 2), 2) .+ w[Nt+1:Nt+1, :] .* b
+    Na, B, Nt  = size(b,1), size(b, 2), size(w,1) - 1
+    qs = Zygote.Buffer(Array{Float32}(undef, Nt, Na, B))
+    for i=1:B, s=1:Nt
+        qs[s, :, i] = m.solutions[s](input[:, i])
+    end
+    sum(copy(qs) .* Flux.unsqueeze(w[1:Nt, :], 2), dims=1)[1,:,:] .+ w[Nt+1:Nt+1, :] .* b
 end
 
 Flux.@functor A2TSTNetwork
