@@ -48,9 +48,6 @@ model = A2TSTNetwork(base, attn, strans, solutions)
 @test size(strans(rand(2, 100))) == (2,100)
 @test size(model(rand(2, 100))) == (1,100)
 
-b =  Zygote.Buffer(Array{Float32}(undef, 10, 10, 10))
-b[1,1,:] = rand(10)
-copy(b)
 
 i = rand(2, 100)
 v = [s(i) for s in model.solutions]
