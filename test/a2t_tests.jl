@@ -32,7 +32,7 @@ solutions = [val]
 model = A2TNetwork(base, attn, solutions)
 
 S, G = rand(2, 100), rand(1,100)
-data = Flux.Data.DataLoader(S, G, batchsize=32, shuffle = true)
+data = Flux.Data.DataLoader((S, G), batchsize=32, shuffle = true)
 opt = ADAM()
 Flux.train!((x, y) -> Flux.mse(model(x), y), Flux.params(model), data, opt)
 
@@ -40,14 +40,13 @@ Flux.train!((x, y) -> Flux.mse(model(x), y), Flux.params(model), data, opt)
 ## Testing the state transformation network
 base = Chain(Dense(2, 32, relu), Dense(32, 1, σ))
 attn = Chain(Dense(2, 32, relu), Dense(32, 3, exp))
-strans = Chain(Dense(2, 32, relu), Dense(32, 2, relu))
+strans = [Chain(Dense(2, 32, relu), Dense(32, 2, relu)), Chain(Dense(2, 32, relu), Dense(32, 2, relu))]
 solutions = [Chain(Dense(2, 32, relu), Dense(32, 1, σ)), Chain(Dense(2, 32, relu), Dense(32, 1, σ))]
 
 model = A2TSTNetwork(base, attn, strans, solutions)
-@test size(strans(rand(2))) == (2,)
-@test size(strans(rand(2, 100))) == (2,100)
+@test size(strans[1](rand(2))) == (2,)
+@test size(strans[1](rand(2, 100))) == (2,100)
 @test size(model(rand(2, 100))) == (1,100)
-
 
 i = rand(2, 100)
 v = [s(i) for s in model.solutions]
