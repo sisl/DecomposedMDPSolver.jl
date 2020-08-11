@@ -116,7 +116,7 @@ Flux.@functor A2TFTNetwork
 Flux.trainable(m::A2TFTNetwork) = (m.base, m.attn, m.finetune...)
 
 function Base.deepcopy(m::A2TFTNetwork)
-  A2TNetwork(deepcopy(m.base), deepcopy(m.attn), m.solutions, deepcopy(m.finetune))
+  A2TFTNetwork(deepcopy(m.base), deepcopy(m.attn), m.solutions, deepcopy(m.finetune))
 end
 
 function Base.iterate(m::A2TFTNetwork, i=1)

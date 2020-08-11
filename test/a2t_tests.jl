@@ -72,7 +72,6 @@ for l in model
 end
 
 
-
 ## Test the fine-tune network
 
 base = Chain(Dense(4, 32, relu), Dense(32, 9, σ))
@@ -106,3 +105,5 @@ val2 = Flux.mse(model(S), G)
 for l in model
     @test !isnothing(l)
 end
+
+@test deepcopy(model) isa A2TFTNetwork
