@@ -21,15 +21,20 @@ a2t_model = A2TNetwork(base, attn, solutions)
 ## Version that was failing -- local approx policy eval
 
 sols = rand(100)
-function val(s)
+function val_fn(s)
     sols[1] = rand()
     return sols[1]
 end
 base = Chain(Dense(2, 32, relu), Dense(32, 1, σ))
 attn = Chain(Dense(2, 32, relu), Dense(32, 2, exp))
-solutions = [val]
+solutions = [val_fn]
 
 model = A2TNetwork(base, attn, solutions)
+
+for l in model
+    @test !isnothing(l)
+end
+
 
 S, G = rand(2, 100), rand(1,100)
 data = Flux.Data.DataLoader((S, G), batchsize=32, shuffle = true)
@@ -62,6 +67,10 @@ out2 = model(i)
 
 @test v2 == v
 @test all(out2 .!= out)
+for l in model
+    @test !isnothing(l)
+end
+
 
 
 ## Test the fine-tune network
@@ -94,3 +103,6 @@ val2 = Flux.mse(model(S), G)
 @test all(out[:] != out2[:])
 @test all( v .== v2)
 
+for l in model
+    @test !isnothing(l)
+end

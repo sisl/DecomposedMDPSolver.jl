@@ -72,14 +72,12 @@ Flux.@functor A2TSTNetwork
 Flux.trainable(m::A2TSTNetwork) = (m.base, m.attn, m.strans...)
 
 function Base.iterate(m::A2TSTNetwork, i=1)
-    i > length(m.base.layers) + length(m.attn.layers) && return nothing
-    if i <= length(m.base.layers)
-        return (m.base[i], i+1)
-    elseif i <= length(m.base.layers) + length(m.attn.layers)
-        return (m.attn[i - length(m.base.layers)], i+1)
-    elseif i <= length(m.base.layers) + length(m.attn.layers) + length(m.strans.layers)
-        return (m.strans[i - length(m.base.layers) - length(m.attn.layers)], i+1)
+    layers = [m.base.layers..., m.attn.layers...]
+    for net in m.strans
+        push!(layers, net.layers...)
     end
+    i > length(layers) && return nothing
+    return (layers[i], i+1)
 end
 
 ## A2T network with fine tuning
@@ -119,5 +117,14 @@ Flux.trainable(m::A2TFTNetwork) = (m.base, m.attn, m.finetune...)
 
 function Base.deepcopy(m::A2TFTNetwork)
   A2TNetwork(deepcopy(m.base), deepcopy(m.attn), m.solutions, deepcopy(m.finetune))
+end
+
+function Base.iterate(m::A2TFTNetwork, i=1)
+    layers = [m.base.layers..., m.attn.layers...]
+    for net in m.finetune
+        push!(layers, net.layers...)
+    end
+    i > length(layers) && return nothing
+    return (layers[i], i+1)
 end
 
