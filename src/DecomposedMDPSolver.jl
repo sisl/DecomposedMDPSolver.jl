@@ -9,7 +9,7 @@ module DecomposedMDPSolver
     using Logging
     using BSON: @save
 
-    export ConstantLayer, A2TNetwork, A2TSTNetwork
+    export ConstantLayer, A2TNetwork, A2TSTNetwork, A2TFTNetwork
     include("a2t.jl")
 
     export ISPolicy, action_and_probability

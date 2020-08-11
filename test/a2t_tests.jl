@@ -64,3 +64,33 @@ out2 = model(i)
 @test all(out2 .!= out)
 
 
+## Test the fine-tune network
+
+base = Chain(Dense(4, 32, relu), Dense(32, 9, σ))
+attn = Chain(Dense(4, 32, relu), Dense(32, 3), softmax)
+solutions = [Chain(Dense(4, 32, relu), Dense(32, 9, σ)), Chain(Dense(4, 32, relu), Dense(32, 9, σ))]
+finetune = [Chain(Dense(13, 9)), Chain(Dense(13, 9))]
+
+model = A2TFTNetwork(base, attn, solutions, finetune)
+
+model(rand(4))
+model(rand(4, 100))
+
+S, G = rand(4, 100), rand(9,100)
+
+v = [s(S) for s in model.solutions]
+out = model(S)
+val = Flux.mse(model(S), G)
+
+data = Flux.Data.DataLoader((S, G), batchsize=32, shuffle = true)
+opt = ADAM()
+Flux.train!((x, y) -> Flux.mse(model(x), y), Flux.params(model), data, opt)
+
+v2 = [s(S) for s in model.solutions]
+out2 = model(S)
+val2 = Flux.mse(model(S), G)
+
+@test val2 < val
+@test all(out[:] != out2[:])
+@test all( v .== v2)
+

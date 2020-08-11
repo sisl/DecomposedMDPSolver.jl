@@ -82,4 +82,42 @@ function Base.iterate(m::A2TSTNetwork, i=1)
     end
 end
 
+## A2T network with fine tuning
+
+mutable struct A2TFTNetwork
+  base::Chain
+  attn::Chain
+  solutions::Array{Any} # function takes in state and outputs vector of action values
+  finetune::Array{Chain} # fine tune network, one for each soluion
+end
+
+function (m::A2TFTNetwork)(input) # input is (Ni, B)
+    Ni = size(input, 1)
+    b = m.base(input) #output is (Na, B)
+    w = m.attn(input) #output is (Nt+1, B)
+    Na, B, Nt  = size(b,1), size(b, 2), size(w,1) - 1
+
+    qs = Array{Float32}(undef, Nt, Na + Ni, B)
+    Zygote.ignore(() -> begin
+        for i=1:B, s=1:Nt
+            qs[s, 1:Na, i] .= m.solutions[s](input[:, i])
+            qs[s, Na+1:Na+Ni, i] .= input[:, i]
+        end
+    end)
+
+    ft = Zygote.Buffer(Array{Float32}(undef, Nt, Na, B))
+    for s=1:Nt
+        ft[s, :, :] = m.finetune[s](qs[s, :, :])
+    end
+
+    sum(copy(ft) .* Flux.unsqueeze(w[1:Nt, :], 2), dims=1)[1,:,:] .+ w[Nt+1:Nt+1, :] .* b
+end
+
+Flux.@functor A2TFTNetwork
+
+Flux.trainable(m::A2TFTNetwork) = (m.base, m.attn, m.finetune...)
+
+function Base.deepcopy(m::A2TFTNetwork)
+  A2TNetwork(deepcopy(m.base), deepcopy(m.attn), m.solutions, deepcopy(m.finetune))
+end
 
