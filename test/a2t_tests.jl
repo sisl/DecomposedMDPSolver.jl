@@ -12,6 +12,12 @@ attn = Chain(Dense(4, 32, relu), Dense(32, Np+1), softmax)
 a2t_model = A2TNetwork(base, attn, solutions)
 @test size(a2t_model(rand(4))) == (Na, 1)
 
+a2t_model(rand(4))
+input = rand(4)
+i = 1
+s = 10
+a2t_model.solutions[s](input[:, i])
+
 ## Constant Weights
 base = Chain(Dense(4, 32, relu), Dense(32, Na))
 attn = Chain(ConstantLayer(Np+1), softmax)
@@ -72,7 +78,7 @@ for l in model
 end
 
 
-## Test the fine-tune network
+## Test the fine-tune A2T network
 
 base = Chain(Dense(4, 32, relu), Dense(32, 9, σ))
 attn = Chain(Dense(4, 32, relu), Dense(32, 3), softmax)
@@ -107,3 +113,63 @@ for l in model
 end
 
 @test deepcopy(model) isa A2TFTNetwork
+
+
+## Test the fine-tune network
+base = Chain(Dense(2, 2, sigmoid), Dense(2, 2, sigmoid), Dense(2,2))
+mynet = FTNetwork(base, [1,2])
+
+params_to_change = deepcopy(params(mynet.net))[1:4]
+params_to_stay_same = deepcopy(params(mynet.net))[5:6]
+
+@test length(Flux.trainable(mynet)) == 2
+
+S = rand(2,100)
+G = rand(2, 100)
+
+
+data = Flux.Data.DataLoader((S, G), batchsize=32, shuffle = true)
+opt = ADAM()
+Flux.train!((x, y) -> Flux.mse(mynet(x), y), Flux.params(mynet), data, opt)
+
+@test all(params_to_change .!= params(mynet.net)[1:4])
+@test all(params_to_stay_same .== params(mynet.net)[5:6])
+
+
+## Full test with A2T network + finetuning
+base = Chain(Dense(4, 32, sigmoid), Dense(32, 9, σ))
+attn = Chain(Dense(4, 32, sigmoid), Dense(32, 3), softmax)
+solutions = [Chain(Dense(4, 32, sigmoid), Dense(32, 9, σ)), Chain(Dense(4, 32, sigmoid), Dense(32, 9, σ))]
+mysols = [FTNetwork(net, [2]) for net in solutions]
+model = A2TNetwork(base, attn, mysols, false)
+
+base_params = deepcopy(params(model.base))
+@test all(base_params .== params(model.base))
+attn_params = deepcopy(params(model.attn))
+@test all(attn_params .== params(model.attn))
+params_to_change1 = deepcopy(params(model.solutions[1].net))[3:4]
+@test all(params_to_change1 .== params(model.solutions[1].net)[3:4])
+params_to_change2 = deepcopy(params(model.solutions[2].net))[3:4]
+@test all(params_to_change2 .== params(model.solutions[2].net)[3:4])
+params_to_stay_same1 = deepcopy(params(model.solutions[1].net))[1:2]
+@test all(params_to_stay_same1 .== params(model.solutions[1].net)[1:2])
+params_to_stay_same2 = deepcopy(params(model.solutions[2].net))[1:2]
+@test all(params_to_stay_same2 .== params(model.solutions[2].net)[1:2])
+
+@test length(Flux.trainable(model)) == 4
+S = rand(4, 100)
+G = rand(9, 100)
+
+@test length(Flux.params(model)) == 12
+
+data = Flux.Data.DataLoader((S, G), batchsize=32, shuffle = true)
+opt = ADAM()
+Flux.train!((x, y) -> Flux.mse(model(x), y), Flux.params(model), data, opt)
+
+@test all(base_params .!= params(model.base))
+@test all(attn_params .!= params(model.attn))
+@test all(params_to_change1 .!= params(model.solutions[1].net)[3:4])
+@test all(params_to_change2 .!= params(model.solutions[2].net)[3:4])
+@test all(params_to_stay_same1 .== params(model.solutions[1].net)[1:2])
+@test all(params_to_stay_same2 .== params(model.solutions[2].net)[1:2])
+

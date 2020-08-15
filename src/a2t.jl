@@ -11,38 +11,46 @@ Flux.@functor ConstantLayer
 mutable struct A2TNetwork
   base::Chain
   attn::Chain
-  solutions::Array{Function} # function takes in state and outputs vector of action values
+  solutions::Array{Any} # function takes in state and outputs vector of action values
+  ignore_solution_computation::Bool
 end
+
+# By default, ignore the computation of the solutions
+A2TNetwork(base, attn, solutions) = A2TNetwork(base, attn, solutions, true)
 
 function (m::A2TNetwork)(input)
     b = m.base(input) #output is (Na, B)
     w = m.attn(input) #output is (Nt+1, B)
     Na, B, Nt  = size(b,1), size(b, 2), size(w,1) - 1
 
-    qs = Array{Float32}(undef, Nt, Na, B)
-    Zygote.ignore(() -> begin
-        for i=1:B, s=1:Nt
-            qs[s, :, i] .= m.solutions[s](input[:, i])
-        end
-    end)
+    if m.ignore_solution_computation
+        qs = Array{Float32}(undef, Nt, Na, B)
+        Zygote.ignore(() -> begin
+            for i=1:B, s=1:Nt
+                qs[s, :, i] .= m.solutions[s](input[:, i])
+            end
+        end)
+    else
+        qs = Flux.stack([m.solutions[s](input) for s in 1:Nt], 1)
+    end
     sum(qs .* Flux.unsqueeze(w[1:Nt, :], 2), dims=1)[1,:,:] .+ w[Nt+1:Nt+1, :] .* b
 end
 
 Flux.@functor A2TNetwork
 
-Flux.trainable(m::A2TNetwork) = (m.base, m.attn)
+Flux.trainable(m::A2TNetwork) = (m.base, m.attn, (!m.ignore_solution_computation ? m.solutions : ())...)
 
 function Base.iterate(m::A2TNetwork, i=1)
-    i > length(m.base.layers) + length(m.attn.layers) && return nothing
-    if i <= length(m.base.layers)
-        return (m.base[i], i+1)
-    elseif i <= length(m.base.layers) + length(m.attn.layers)
-        return (m.attn[i - length(m.base.layers)], i+1)
+    layers = [m.base.layers..., m.attn.layers...]
+    if !m.ignore_solution_computation
+        for s in m.solutions
+            for l in s
+                push!(layers, l)
+            end
+        end
     end
-end
-
-function Base.deepcopy(m::A2TNetwork)
-  A2TNetwork(deepcopy(m.base), deepcopy(m.attn), m.solutions)
+    i > length(layers) && return nothing
+    return (layers[i], i+1)
 end
 
 ## A2T Network with state transform
@@ -115,10 +123,6 @@ Flux.@functor A2TFTNetwork
 
 Flux.trainable(m::A2TFTNetwork) = (m.base, m.attn, m.finetune...)
 
-function Base.deepcopy(m::A2TFTNetwork)
-  A2TFTNetwork(deepcopy(m.base), deepcopy(m.attn), m.solutions, deepcopy(m.finetune))
-end
-
 function Base.iterate(m::A2TFTNetwork, i=1)
     layers = [m.base.layers..., m.attn.layers...]
     for net in m.finetune
@@ -127,4 +131,23 @@ function Base.iterate(m::A2TFTNetwork, i=1)
     i > length(layers) && return nothing
     return (layers[i], i+1)
 end
+
+
+## A Fine-tune network with choice of number of layers to freeze
+
+mutable struct FTNetwork
+  net::Chain
+  train_layers::Array{Int}
+end
+
+(m::FTNetwork)(input) = m.net(input)
+Flux.@functor FTNetwork
+
+Flux.trainable(m::FTNetwork) = m.net.layers[m.train_layers]
+
+function Base.iterate(m::FTNetwork, i=1)
+    i > length(m.train_layers) && return nothing
+    return (m.net.layers[m.train_layers[i]], i+1)
+end
+
 
